@@ -16,6 +16,11 @@ from PIL import Image
 from aider.dump import dump  # noqa: F401
 from aider.llm import litellm
 
+try:
+    from aider.llama_server_model import LlamaServerModel 
+except ImportError:
+    LlamaServerModel = None
+
 DEFAULT_MODEL_NAME = "gpt-4o"
 ANTHROPIC_BETA_HEADER = "prompt-caching-2024-07-31"
 
@@ -723,6 +728,14 @@ MODEL_SETTINGS = [
         editor_edit_format="editor-diff",
         use_repo_map=True,
     ),
+    ModelSettings(
+        "llama_server",
+        "diff",  # Default to diff format  
+        weak_model_name="llama_server",
+        use_repo_map=True,
+        examples_as_sys_msg=True,
+        reminder="sys",
+    ),
 ]
 
 
@@ -805,6 +818,79 @@ model_info_manager = ModelInfoManager()
 class Model(ModelSettings):
     def __init__(self, model, weak_model=None, editor_model=None, editor_edit_format=None):
         self.name = model
+        self.missing_keys = []
+        self.keys_in_environment = True
+        # Use server's full context window - no artificial limit on history
+        self.max_chat_history_tokens = None 
+
+        # Handle llama-cpp server backend
+        if model.startswith("llama-cpp/"):
+            try:
+                import requests
+            except ImportError:
+                raise ImportError(
+                    "Requests library not installed. Install with: pip install requests"
+                )
+
+            self.backend = "llama_server"
+
+            # Validate server connection
+            try:
+                response = requests.get("http://localhost:8080/health")
+                if response.status_code != 200:
+                    raise RuntimeError(f"Server health check failed: {response.status_code}")
+                    
+                # Get model info from props 
+                response = requests.get("http://localhost:8080/props") 
+                response.raise_for_status()
+                data = response.json()
+                settings = data.get('default_generation_settings', {})
+                
+                context_size = settings.get('n_ctx', 2048)
+                self.info = {
+                    'max_input_tokens': context_size,
+                    'max_output_tokens': context_size,
+                    'supports_vision': False,
+                    'litellm_provider': 'llama_server',
+                    'model': settings.get('model', 'unknown'), 
+                    'mode': 'chat'
+                }
+                
+            except requests.RequestException as e:
+                self.missing_keys = ["llama.cpp server not running"]
+                self.keys_in_environment = False 
+                self.info = {}
+                
+            # Set defaults that work well with llama.cpp server
+            self.edit_format = "diff"
+            self.use_repo_map = True
+            self.examples_as_sys_msg = True
+            self.reminder = "sys"
+            self.streaming = True
+                
+            # Ignore all the other model settings since server handles those
+            if weak_model == False:
+                self.weak_model = self
+            elif weak_model:
+                self.weak_model = Model(weak_model, weak_model=False)
+            else:
+                self.weak_model = self
+                    
+            if editor_model == False:
+                self.editor_model = self
+            elif editor_model:
+                self.editor_model = Model(editor_model, editor_model=False)
+            else:
+                self.editor_model = self
+                
+            return
+
+        # Handle normal model validation...
+        res = self.validate_environment()
+        self.missing_keys = res.get("missing_keys")
+        self.keys_in_environment = res.get("keys_in_environment")
+        self.info = self.get_model_info(model)
+
         self.max_chat_history_tokens = 1024
         self.weak_model = None
         self.editor_model = None

@@ -6,6 +6,15 @@ from aider.dump import dump  # noqa: F401
 from aider.exceptions import LiteLLMExceptions
 from aider.llm import litellm
 
+try:
+    import requests
+except ImportError:
+    requests = None
+    
+    
+from types import SimpleNamespace
+
+
 # from diskcache import Cache
 
 
@@ -24,6 +33,78 @@ def send_completion(
     temperature=0,
     extra_params=None,
 ):
+    # Handle llama-cpp server backend
+    if model_name.startswith("llama-cpp/"):
+        if not requests:
+            raise ImportError(
+                "Requests library not installed. Install with: pip install requests"
+            )
+
+        # Convert messages to prompt using ChatML format
+        prompt = ""
+        for msg in messages:
+            role = msg["role"].upper()
+            content = msg["content"]
+            prompt += f"{role}: {content}\n"
+        prompt += "ASSISTANT: "
+
+        # Build request payload
+        payload = {
+            "prompt": prompt,
+            "stream": stream,
+            "temperature": temperature
+        }
+
+        try:
+            url = "http://localhost:8080/completion"
+            if stream:
+                response = requests.post(url, json=payload, stream=True)
+                response.raise_for_status()
+                def generate():
+                    for line in response.iter_lines():
+                        if not line:
+                            continue
+                        try:
+                            line = line.decode('utf-8')
+                            # Server uses SSE format with "data: " prefix
+                            if not line.startswith("data: "):
+                                continue
+                            # Remove the "data: " prefix
+                            line = line[6:]
+                            chunk = json.loads(line)
+                            
+                            # Convert dict to object with attributes that aider expects
+                            response_obj = SimpleNamespace()
+                            response_obj.choices = [SimpleNamespace()]
+                            response_obj.choices[0].delta = SimpleNamespace()
+                            response_obj.choices[0].delta.content = chunk.get("content", "")
+                            response_obj.choices[0].finish_reason = "stop" if chunk.get("stop", False) else None
+                            
+                            yield response_obj
+
+                        except Exception as e:
+                            print(f"Error processing response line: {e}")
+                            continue
+                            
+                return hashlib.sha1(b"llama_server"), generate()
+            else:
+                response = requests.post(url, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Convert dict to object with attributes that aider expects
+                response_obj = SimpleNamespace()
+                response_obj.choices = [SimpleNamespace()]
+                response_obj.choices[0].message = SimpleNamespace()
+                response_obj.choices[0].message.content = data.get("content", "")
+                response_obj.choices[0].finish_reason = "stop" if data.get("stop", False) else None
+                
+                return hashlib.sha1(b"llama_server"), response_obj
+
+        except Exception as e:
+            raise RuntimeError(f"Llama.cpp server completion failed: {str(e)}")
+
+    # Handle litellm completion
     kwargs = dict(
         model=model_name,
         messages=messages,
@@ -41,8 +122,6 @@ def send_completion(
         kwargs.update(extra_params)
 
     key = json.dumps(kwargs, sort_keys=True).encode()
-
-    # Generate SHA1 hash of kwargs and append it to chat_completion_call_hashes
     hash_object = hashlib.sha1(key)
 
     if not stream and CACHE is not None and key in CACHE:
