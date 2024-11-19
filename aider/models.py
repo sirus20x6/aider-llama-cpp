@@ -634,7 +634,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "azure/o1-mini",
@@ -646,7 +645,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "o1-mini",
@@ -658,7 +656,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "openai/o1-preview",
@@ -670,7 +667,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "azure/o1-preview",
@@ -682,7 +678,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "o1-preview",
@@ -694,7 +689,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "openrouter/openai/o1-mini",
@@ -706,7 +700,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "openrouter/openai/o1-preview",
@@ -718,7 +711,6 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
-        streaming=False,
     ),
     ModelSettings(
         "openrouter/qwen/qwen-2.5-coder-32b-instruct",
@@ -964,7 +956,6 @@ class Model(ModelSettings):
         if model.startswith("o1-") or "/o1-" in model:
             self.use_system_prompt = False
             self.use_temperature = False
-            self.streaming = False
 
         if (
             "qwen" in model

@@ -1,6 +1,20 @@
 
 # Release history
 
+### main branch
+
+- Fixed bug in fuzzy model name matching when litellm provider info is missing.
+- Modified model metadata file loading to allow override of resource file.
+- Allow recursive loading of dirs using `--read`.
+- Updated dependency versions to pick up litellm fix for ollama models.
+- Added exponential backoff retry when writing files to handle editor file locks.
+- Updated Qwen 2.5 Coder 32B model configuration.
+
+### Aider v0.63.1
+
+- Fixed bug in git ignored file handling.
+- Improved error handling for git operations.
+
 ### Aider v0.63.0
 
 - Support for Qwen 2.5 Coder 32B.
