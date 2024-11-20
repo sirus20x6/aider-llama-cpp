@@ -887,6 +887,11 @@ class Model(ModelSettings):
         self.weak_model = None
         self.editor_model = None
 
+        # Find the extra settings
+        self.extra_model_settings = next(
+            (ms for ms in MODEL_SETTINGS if ms.name == "aider/extra_params"), None
+        )
+
         self.info = self.get_model_info(model)
 
         # Are all needed keys/params available?
@@ -914,17 +919,44 @@ class Model(ModelSettings):
     def get_model_info(self, model):
         return model_info_manager.get_model_info(model)
 
+    def _copy_fields(self, source):
+        """Helper to copy fields from a ModelSettings instance to self"""
+        for field in fields(ModelSettings):
+            val = getattr(source, field.name)
+            setattr(self, field.name, val)
+
     def configure_model_settings(self, model):
+        # Look for exact model match
+        exact_match = False
         for ms in MODEL_SETTINGS:
             # direct match, or match "provider/<model>"
             if model == ms.name:
-                for field in fields(ModelSettings):
-                    val = getattr(ms, field.name)
-                    setattr(self, field.name, val)
-                return  # <--
+                self._copy_fields(ms)
+                exact_match = True
+                break  # Continue to apply overrides
 
         model = model.lower()
 
+        # If no exact match, try generic settings
+        if not exact_match:
+            self.apply_generic_model_settings(model)
+
+        # Apply override settings last if they exist
+        if self.extra_model_settings and self.extra_model_settings.extra_params:
+            # Initialize extra_params if it doesn't exist
+            if not self.extra_params:
+                self.extra_params = {}
+
+            # Deep merge the extra_params dicts
+            for key, value in self.extra_model_settings.extra_params.items():
+                if isinstance(value, dict) and isinstance(self.extra_params.get(key), dict):
+                    # For nested dicts, merge recursively
+                    self.extra_params[key] = {**self.extra_params[key], **value}
+                else:
+                    # For non-dict values, simply update
+                    self.extra_params[key] = value
+
+    def apply_generic_model_settings(self, model):
         if ("llama3" in model or "llama-3" in model) and "70b" in model:
             self.edit_format = "diff"
             self.use_repo_map = True
@@ -946,16 +978,19 @@ class Model(ModelSettings):
 
         if "gpt-3.5" in model or "gpt-4" in model:
             self.reminder = "sys"
+            return  # <--
 
         if "3.5-sonnet" in model or "3-5-sonnet" in model:
             self.edit_format = "diff"
             self.use_repo_map = True
             self.examples_as_sys_msg = True
             self.reminder = "user"
+            return  # <--
 
         if model.startswith("o1-") or "/o1-" in model:
             self.use_system_prompt = False
             self.use_temperature = False
+            return  # <--
 
         if (
             "qwen" in model
@@ -967,10 +1002,12 @@ class Model(ModelSettings):
             self.edit_format = "diff"
             self.editor_edit_format = "editor-diff"
             self.use_repo_map = True
+            return  # <--
 
         # use the defaults
         if self.edit_format == "diff":
             self.use_repo_map = True
+            return  # <--
 
     def __str__(self):
         return self.name
