@@ -312,8 +312,8 @@ cog.outl("```")
 ############
 # Analytics:
 
-## Enable/disable analytics for one session (default: False)
-#AIDER_ANALYTICS=false
+## Enable/disable analytics for current session (default: random)
+#AIDER_ANALYTICS=
 
 ## Specify a file to log analytics events
 #AIDER_ANALYTICS_LOG=
@@ -392,6 +392,9 @@ cog.outl("```")
 
 ## Enable/disable fancy input with history and completion (default: True)
 #AIDER_FANCY_INPUT=true
+
+## Specify which editor to use for the /editor command
+#AIDER_EDITOR=
 
 #################
 # Voice Settings:

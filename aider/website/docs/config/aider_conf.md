@@ -327,8 +327,8 @@ cog.outl("```")
 ############
 # Analytics:
 
-## Enable/disable analytics for one session (default: False)
-#analytics: false
+## Enable/disable analytics for current session (default: random)
+#analytics: xxx
 
 ## Specify a file to log analytics events
 #analytics-log: xxx
@@ -423,6 +423,9 @@ cog.outl("```")
 
 ## Enable/disable fancy input with history and completion (default: True)
 #fancy-input: true
+
+## Specify which editor to use for the /editor command
+#editor: xxx
 
 #################
 # Voice Settings:

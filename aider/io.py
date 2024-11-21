@@ -441,28 +441,38 @@ class InputOutput:
                 self.tool_error(str(err))
                 return ""
 
-            if line and line[0] == "{" and not multiline_input:
-                multiline_input = True
-                # Check for optional tag after opening {
-                if len(line) > 1:
-                    tag = "".join(c for c in line[1:] if c.isalnum())
-                    multiline_tag = tag
-                    inp += line[len(tag) + 1 :] + "\n"
-                else:
+            if line.strip("\r\n") and not multiline_input:
+                stripped = line.strip("\r\n")
+                if stripped == "{":
+                    multiline_input = True
                     multiline_tag = None
-                    inp += line[1:] + "\n"
+                    inp += ""
+                elif stripped[0] == "{":
+                    # Extract tag if it exists (only alphanumeric chars)
+                    tag = "".join(c for c in stripped[1:] if c.isalnum())
+                    if stripped == "{" + tag:
+                        multiline_input = True
+                        multiline_tag = tag
+                        inp += ""
+                    else:
+                        inp = line
+                        break
+                else:
+                    inp = line
+                    break
                 continue
-            elif line and line[-1] == "}" and multiline_input:
+            elif multiline_input and line.strip():
                 if multiline_tag:
-                    # Check if the line ends with tag}
-                    if line.endswith(f"{multiline_tag}}}"):
-                        inp += line[: -len(multiline_tag) - 1] + "\n"
+                    # Check if line is exactly "tag}"
+                    if line.strip("\r\n") == f"{multiline_tag}}}":
                         break
                     else:
                         inp += line + "\n"
-                else:
-                    inp += line[:-1] + "\n"
+                # Check if line is exactly "}"
+                elif line.strip("\r\n") == "}":
                     break
+                else:
+                    inp += line + "\n"
             elif multiline_input:
                 inp += line + "\n"
             else:
@@ -478,8 +488,8 @@ class InputOutput:
             return
         FileHistory(self.input_history_file).append_string(inp)
         # Also add to the in-memory history if it exists
-        if hasattr(self, "session") and hasattr(self.session, "history"):
-            self.session.history.append_string(inp)
+        if self.prompt_session and self.prompt_session.history:
+            self.prompt_session.history.append_string(inp)
 
     def get_input_history(self):
         if not self.input_history_file:

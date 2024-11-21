@@ -506,8 +506,8 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         io.tool_warning("Terminal does not support pretty output (UnicodeDecodeError)")
 
     analytics = Analytics(logfile=args.analytics_log, permanently_disable=args.analytics_disable)
-    if args.analytics:
-        if analytics.need_to_ask():
+    if args.analytics is not False:
+        if analytics.need_to_ask(args.analytics):
             io.tool_output(
                 "Aider respects your privacy and never collects your code, chat messages, keys or"
                 " personal info."
@@ -689,7 +689,13 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
             return 1
 
     commands = Commands(
-        io, None, verify_ssl=args.verify_ssl, args=args, parser=parser, verbose=args.verbose
+        io,
+        None,
+        verify_ssl=args.verify_ssl,
+        args=args,
+        parser=parser,
+        verbose=args.verbose,
+        editor=args.editor,
     )
 
     summarizer = ChatSummary(

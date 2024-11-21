@@ -562,8 +562,8 @@ def get_parser(default_config_files, git_root):
     group.add_argument(
         "--analytics",
         action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Enable/disable analytics for one session (default: False)",
+        default=None,
+        help="Enable/disable analytics for current session (default: random)",
     )
     group.add_argument(
         "--analytics-log",
@@ -737,6 +737,10 @@ def get_parser(default_config_files, git_root):
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Enable/disable fancy input with history and completion (default: True)",
+    )
+    group.add_argument(
+        "--editor",
+        help="Specify which editor to use for the /editor command",
     )
 
     ##########
