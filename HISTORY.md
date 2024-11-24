@@ -1,7 +1,7 @@
 
 # Release history
 
-### main branch
+### Aider v0.64.0
 
 - Added [`/editor` command](https://aider.chat/docs/usage/commands.html) to open system editor for writing prompts, by @thehunmonkgroup.
 - Full support for `gpt-4o-2024-11-20`.
@@ -16,7 +16,7 @@
 - Added `--show-release-notes` to control release notes display on first run of new version.
 - Save empty dict to cache file on model metadata download failure, to delay retry.
 - Improved error handling and code formatting.
-- Aider wrote 66% of the code in this release.
+- Aider wrote 74% of the code in this release.
 
 ###  Aider v0.63.2
 

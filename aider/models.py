@@ -716,6 +716,7 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
+        streaming=False,
     ),
     ModelSettings(
         "openrouter/openai/o1-preview",
@@ -727,6 +728,7 @@ MODEL_SETTINGS = [
         reminder="user",
         use_system_prompt=False,
         use_temperature=False,
+        streaming=False,
     ),
     ModelSettings(
         "openrouter/qwen/qwen-2.5-coder-32b-instruct",
@@ -1019,10 +1021,11 @@ class Model(ModelSettings):
             and ("2.5" in model or "2-5" in model)
             and "32b" in model
         ):
-            "openrouter/qwen/qwen-2.5-coder-32b-instruct",
             self.edit_format = "diff"
             self.editor_edit_format = "editor-diff"
             self.use_repo_map = True
+            if "ollama" in model:
+                self.extra_params = dict(num_ctx=8 * 1024)
             return  # <--
 
         # use the defaults
@@ -1183,6 +1186,9 @@ def register_models(model_settings_fnames):
     files_loaded = []
     for model_settings_fname in model_settings_fnames:
         if not os.path.exists(model_settings_fname):
+            continue
+
+        if not Path(model_settings_fname).read_text().strip():
             continue
 
         try:

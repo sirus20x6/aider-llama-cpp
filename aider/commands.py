@@ -1365,9 +1365,8 @@ class Commands:
         "Open an editor to write a prompt"
 
         user_input = pipe_editor(initial_content, suffix="md", editor=self.editor)
-        self.io.user_input(user_input, log_only=False)
-        self.io.add_to_input_history(user_input)
-        return user_input
+        if user_input.strip():
+            self.io.set_placeholder(user_input.rstrip())
 
 
 def expand_subdir(file_path):
